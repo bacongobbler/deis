@@ -900,7 +900,6 @@ def _etcd_purge_app(**kwargs):
 def _etcd_publish_cert(**kwargs):
     cert = kwargs['instance']
     if kwargs['created']:
-        _etcd_client.write('/deis/certs/{}'.format(cert.app), None, dir=True)
         _etcd_client.write('/deis/certs/{}/key'.format(cert.app), cert.key)
         _etcd_client.write('/deis/certs/{}/cert'.format(cert.app), cert.cert)
 
