@@ -5,7 +5,7 @@
 Controller API v1.2
 ===================
 
-This is the v1.0 REST API for the :ref:`Controller`.
+This is the v1.2 REST API for the :ref:`Controller`.
 
 
 What's New
