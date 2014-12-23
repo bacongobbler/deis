@@ -13,7 +13,7 @@ CERTAPPS=()
 #-------------------------------------------------------------------------------
 CertFilename()
 {
-  echo "${NAME_PREFIX}$1.cert"
+  echo "${NAME_PREFIX}$1.crt"
 }
 
 KeyFilename()
@@ -81,7 +81,7 @@ Clean()
   # by given name_generators for each CERTAPP if not, delete it.
   local search_dir=$1
   local name_generators=${@:2}
-  
+
   local keep_names
   for app in ${CERTAPPS[@]}; do
     for gen in $name_generators; do
@@ -90,7 +90,7 @@ Clean()
   done
 
   local file
-  for file in $(ls $search_dir | grep ^$NAME_PREFIX); do 
+  for file in $(ls $search_dir | grep ^$NAME_PREFIX); do
     local keep=false
     local name
     for name in ${keep_names[@]}; do
@@ -133,6 +133,6 @@ while read line; do
 done < /etc/ssl/app_certs
 
 # Clean up orphaned templates, resources and certs
-Clean $TEMPLATE_DIR CertTemplateFilename KeyTemplateFilename 
+Clean $TEMPLATE_DIR CertTemplateFilename KeyTemplateFilename
 Clean $CONFD_DIR    CertResourceFilename KeyResourceFilename
 Clean $CERT_DIR     CertFilename         KeyFilename

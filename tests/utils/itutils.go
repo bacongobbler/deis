@@ -68,11 +68,11 @@ func GetGlobalConfig() *DeisTestConfig {
 	}
 	appCertPath := os.Getenv("DEIS_TEST_SSL_CERT")
 	if appCertPath == "" {
-		appCertPath = "~/deis-test.cer"
+		appCertPath = "~/.ssl/deis-test.crt"
 	}
 	appCertKeyPath := os.Getenv("DEIS_TEST_SSL_KEY")
 	if appCertKeyPath == "" {
-		appCertKeyPath = "~/deis-test.key"
+		appCertKeyPath = "~/.ssl/deis-test.key"
 	}
 	appCertCn := os.Getenv("DEIS_TEST_SSL_CN")
 	if appCertCn == "" {

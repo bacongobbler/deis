@@ -23,7 +23,7 @@ func TestCerts(t *testing.T) {
   CertsListTest(t, params, "no certificates")
 }
 
-// Requires that ~/deis-test.cer and ~/deis-test.key be set up
+// Requires that ~/.ssl/deis-test.crt and ~/.ssl/deis-test.key be set up
 // see tests/bin/test-setup.sh
 func certsSetup(t *testing.T) *utils.DeisTestConfig {
   cfg := utils.GetGlobalConfig()

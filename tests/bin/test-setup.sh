@@ -46,11 +46,11 @@ export HOST_IPADDR=${HOST_IPADDR?}
 echo "HOST_IPADDR=$HOST_IPADDR"
 
 # SSL cert name used for testing
-export DEIS_TEST_SSL_CERT=${DEIS_TEST_SSL_CERT:-~/deis-test.cer}
+export DEIS_TEST_SSL_CERT=${DEIS_TEST_SSL_CERT:-~/.ssl/deis-test.crt}
 echo "DEIS_TEST_SSL_CERT=$DEIS_TEST_SSL_CERT"
 
 # SSL key name used for testing
-export DEIS_TEST_SSL_KEY=${DEIS_TEST_SSL_KEY:-~/deis-test.key}
+export DEIS_TEST_SSL_KEY=${DEIS_TEST_SSL_KEY:-~/.ssl/deis-test.key}
 echo "DEIS_TEST_SSL_KEY=$DEIS_TEST_SSL_KEY"
 
 # SSL common name used for testing
