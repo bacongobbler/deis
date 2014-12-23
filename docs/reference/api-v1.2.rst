@@ -11,7 +11,7 @@ This is the v1.0 REST API for the :ref:`Controller`.
 What's New
 ----------
 
-**New!** /certs endpoint for managing application certificates.
+**New!** ``/certs`` endpoint for managing application certificates.
 
 
 Authentication
@@ -509,7 +509,7 @@ Example Response:
         "app": "example-go",
         "values": {
             "DEIS_APP": "example-go",
-            "DEIS_RELEASE": "v4", 
+            "DEIS_RELEASE": "v4",
             "PLATFORM": "deis"
        },
         "memory": {},
@@ -621,7 +621,7 @@ Example Request:
 Example Response:
 
 .. code-block:: console
-    
+
     HTTP/1.2 200 OK
     X_DEIS_API_VERSION: 1.2
     X_DEIS_PLATFORM_VERSION: 1.2.0
