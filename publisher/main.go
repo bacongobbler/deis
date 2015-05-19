@@ -39,6 +39,15 @@ func main() {
 
 	log.Println("booting publisher...")
 
+	// run a profiler
+	go func() {
+		msg := fmt.Sprintf("profiler listening on %s", bindAddr)
+		if err := http.ListenAndServe(bindAddr, nil); err != nil {
+			msg = err.Error()
+		}
+		log.Println(msg)
+	}()
+
 	dockerClient, err := docker.NewClient(dockerAddr)
 	if err != nil {
 		log.Fatal(err)
@@ -48,14 +57,6 @@ func main() {
 	server := server.New(dockerClient, etcdClient, host, logLevel)
 
 	go server.Listen(etcdTTL)
-
-	go func() {
-		msg := fmt.Sprintf("profiler listening on %s", bindAddr)
-		if err := http.ListenAndServe(bindAddr, nil); err != nil {
-			msg = err.Error()
-		}
-		log.Println(msg)
-	}()
 
 	for {
 		go server.Poll(etcdTTL)
