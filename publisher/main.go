@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -14,6 +15,7 @@ import (
 )
 
 const (
+	defaultBindAddr    				 = "localhost:6060"
 	defaultRefreshTime time.Duration = 10 * time.Second
 	defaultEtcdTTL     time.Duration = defaultRefreshTime * 2
 	defaultHost                      = "127.0.0.1"
@@ -24,6 +26,7 @@ const (
 )
 
 var (
+	bindAddr        = flag.String("bind-addr", defaultBindAddr, "The IP address and port to bind to")
 	refreshDuration = flag.Duration("refresh-duration", defaultRefreshTime, "The time to wait between etcd refreshes.")
 	etcdTTL         = flag.Duration("etcd-ttl", defaultEtcdTTL, "The TTL for all of the keys in etcd.")
 	host            = flag.String("host", defaultHost, "The host where the publisher is running.")
@@ -36,6 +39,8 @@ var (
 func main() {
 	flag.Parse()
 
+	log.Println("booting publisher...")
+
 	dockerClient, err := docker.NewClient(*dockerHost)
 	if err != nil {
 		log.Fatal(err)
@@ -47,7 +52,11 @@ func main() {
 	go server.Listen(*etcdTTL)
 
 	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
+		msg := fmt.Sprintf("profiler listening on %s", bindAddr)
+		if err := http.ListenAndServe(*bindAddr, nil); err != nil {
+			msg = err.Error()
+		}
+		log.Println(msg)
 	}()
 
 	for {
