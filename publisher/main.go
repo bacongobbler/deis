@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/coreos/go-etcd/etcd"
-	"github.com/fsouza/go-dockerclient"
 
 	"github.com/deis/deis/publisher/server"
 )
@@ -50,13 +48,10 @@ func main() {
 		}
 	}()
 
-	dockerClient, err := docker.NewClient(dockerAddr)
+	server, err := server.New(dockerAddr, etcdAddr, host)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to start (%s)", err)
 	}
-	etcdClient := etcd.NewClient([]string{etcdAddr})
-
-	server := server.New(dockerClient, etcdClient, host)
 
 	go server.Listen(etcdTTL)
 

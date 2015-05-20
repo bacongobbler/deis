@@ -31,12 +31,18 @@ var safeMap = struct {
 }{data: make(map[string]string)}
 
 // New returns a new instance of Server.
-func New(dockerClient *docker.Client, etcdClient *etcd.Client, host string) *Server {
+func New(dockerAddr, etcdAddr, host string) (*Server, error) {
+	dockerClient, err := docker.NewClient(dockerAddr)
+	if err != nil {
+		return nil, err
+	}
+	etcdClient := etcd.NewClient([]string{etcdAddr})
+
 	return &Server{
 		DockerClient: dockerClient,
 		EtcdClient:   etcdClient,
 		host:         host,
-	}
+	}, nil
 }
 
 // Listen adds an event listener to the docker client and publishes containers that were started.
