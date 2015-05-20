@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/fsouza/go-dockerclient"
 
@@ -21,6 +21,7 @@ var (
 	host            string
 	dockerAddr      string
 	etcdAddr        string
+	log             = logrus.New()
 	logLevel        string
 )
 
@@ -31,21 +32,22 @@ func init() {
 	flag.StringVar(&host, "host", "127.0.0.1", "host address of the machine")
 	flag.StringVar(&dockerAddr, "docker-addr", "unix:///var/run/docker.sock", "address to a docker API")
 	flag.StringVar(&etcdAddr, "etcd-addr", "http://127.0.0.1:4001", "address to the etcd host")
-	flag.StringVar(&logLevel, "log-level", "error", "level which publisher should log messages (Accepted levels: error, debug)")
+	flag.StringVar(&logLevel, "log-level", "error", "level which publisher should log messages")
 }
 
 func main() {
 	flag.Parse()
 
-	log.Println("booting publisher...")
+	log.Info("booting publisher...")
+	setLogLevel()
 
 	// run a profiler
 	go func() {
-		msg := fmt.Sprintf("profiler listening on %s", bindAddr)
 		if err := http.ListenAndServe(bindAddr, nil); err != nil {
-			msg = err.Error()
+			log.Warningf("failed to run profiler (%s)", err)
+		} else {
+			log.Infof("profiler listening on %s", bindAddr)
 		}
-		log.Println(msg)
 	}()
 
 	dockerClient, err := docker.NewClient(dockerAddr)
@@ -54,7 +56,7 @@ func main() {
 	}
 	etcdClient := etcd.NewClient([]string{etcdAddr})
 
-	server := server.New(dockerClient, etcdClient, host, logLevel)
+	server := server.New(dockerClient, etcdClient, host)
 
 	go server.Listen(etcdTTL)
 
@@ -62,4 +64,12 @@ func main() {
 		go server.Poll(etcdTTL)
 		time.Sleep(refreshDuration)
 	}
+}
+
+func setLogLevel() {
+	lvl, err := logrus.ParseLevel(logLevel)
+	if err != nil {
+		log.Fatalf("failed to parse log level '%s' (%s)", logLevel, err)
+	}
+	logrus.SetLevel(lvl)
 }

@@ -2,13 +2,13 @@ package server
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"regexp"
 	"strconv"
 	"sync"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/go-etcd/etcd"
 	"github.com/fsouza/go-dockerclient"
 )
@@ -22,9 +22,7 @@ const (
 type Server struct {
 	DockerClient *docker.Client
 	EtcdClient   *etcd.Client
-
-	host     string
-	logLevel string
+	host         string
 }
 
 var safeMap = struct {
@@ -33,12 +31,11 @@ var safeMap = struct {
 }{data: make(map[string]string)}
 
 // New returns a new instance of Server.
-func New(dockerClient *docker.Client, etcdClient *etcd.Client, host, logLevel string) *Server {
+func New(dockerClient *docker.Client, etcdClient *etcd.Client, host string) *Server {
 	return &Server{
 		DockerClient: dockerClient,
 		EtcdClient:   etcdClient,
 		host:         host,
-		logLevel:     logLevel,
 	}
 }
 
@@ -57,7 +54,7 @@ func (s *Server) Listen(ttl time.Duration) {
 			if event.Status == "start" {
 				container, err := s.getContainer(event.ID)
 				if err != nil {
-					log.Println(err)
+					log.Error(err)
 					continue
 				}
 				s.publishContainer(container, ttl)
@@ -72,7 +69,7 @@ func (s *Server) Listen(ttl time.Duration) {
 func (s *Server) Poll(ttl time.Duration) {
 	containers, err := s.DockerClient.ListContainers(docker.ListContainersOptions{})
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
 	}
 	for _, container := range containers {
 		// send container to channel for processing
@@ -135,7 +132,7 @@ func (s *Server) removeContainer(event string) {
 
 	if appPath != "" {
 		keyPath := fmt.Sprintf("/deis/services/%s", appPath)
-		log.Printf("stopped %s\n", keyPath)
+		log.Infof("stopped %s\n", keyPath)
 		s.removeEtcd(keyPath, false)
 	}
 }
@@ -150,7 +147,7 @@ func (s *Server) IsPublishableApp(name string) bool {
 	appName := match[1]
 	version, err := strconv.Atoi(match[2])
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 		return false
 	}
 
@@ -196,7 +193,7 @@ func latestRunningVersion(client *etcd.Client, appName string) int {
 		}
 		version, err := strconv.Atoi(match[2])
 		if err != nil {
-			log.Println(err)
+			log.Error(err)
 			return 0
 		}
 		versions = append(versions, version)
@@ -217,31 +214,25 @@ func max(n []int) int {
 
 // setEtcd sets the corresponding etcd key with the value and ttl
 func (s *Server) setEtcd(key, value string, ttl uint64) {
+	log.Debugln("set", key, "->", value)
 	if _, err := s.EtcdClient.Set(key, value, ttl); err != nil {
-		log.Println(err)
-	}
-	if s.logLevel == "debug" {
-		log.Println("set", key, "->", value)
+		log.Error(err)
 	}
 }
 
 // removeEtcd removes the corresponding etcd key
 func (s *Server) removeEtcd(key string, recursive bool) {
+	log.Debugln("del", key)
 	if _, err := s.EtcdClient.Delete(key, recursive); err != nil {
 		log.Println(err)
-	}
-	if s.logLevel == "debug" {
-		log.Println("del", key)
 	}
 }
 
 // updateDir updates the given directory for a given ttl. It succeeds
 // only if the given directory already exists.
 func (s *Server) updateDir(directory string, ttl uint64) {
+	log.Debugln("updateDir", directory)
 	if _, err := s.EtcdClient.UpdateDir(directory, ttl); err != nil {
 		log.Println(err)
-	}
-	if s.logLevel == "debug" {
-		log.Println("updateDir", directory)
 	}
 }
