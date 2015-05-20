@@ -59,8 +59,8 @@ func main() {
 		log.Fatalf("failed to start (%s)", err)
 	}
 
-	// run Poll() once at boot to publish existing containers
-	go sever.Poll()
+	// run Publish() once at boot to publish existing containers
+	go server.Publish()
 	go server.Listen(stopChan)
 
 	t := time.NewTicker(interval)
@@ -68,7 +68,8 @@ func main() {
 	for {
 		select {
 		case <-t.C:
-			go server.Poll()
+			// we need to re-publish containers every interval so the TTL doesn't expire
+			go server.Publish()
 		case <-signalChan:
 			log.Info("shutting down publisher...")
 			stopChan <- true

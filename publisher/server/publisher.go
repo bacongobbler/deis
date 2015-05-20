@@ -80,8 +80,8 @@ func (s *Server) Listen(stopChan chan bool) {
 	}
 }
 
-// Poll lists all containers from the docker client every time the TTL comes up and publishes them to etcd
-func (s *Server) Poll() {
+// Publish lists all containers from the docker client every time the TTL comes up and publishes them to etcd
+func (s *Server) Publish() {
 	containers, err := s.DockerClient.ListContainers(docker.ListContainersOptions{})
 	if err != nil {
 		log.Error(err)
