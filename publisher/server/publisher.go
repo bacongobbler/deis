@@ -23,6 +23,7 @@ type Server struct {
 	DockerClient *docker.Client
 	EtcdClient   *etcd.Client
 	Host         string
+	PublishTTL   time.Duration
 }
 
 var safeMap = struct {
@@ -31,7 +32,7 @@ var safeMap = struct {
 }{data: make(map[string]string)}
 
 // New returns a new instance of Server.
-func New(dockerAddr, etcdAddr, host string) (*Server, error) {
+func New(dockerAddr, etcdAddr, host string, ttl time.Duration) (*Server, error) {
 	dockerClient, err := docker.NewClient(dockerAddr)
 	if err != nil {
 		return nil, err
@@ -42,11 +43,12 @@ func New(dockerAddr, etcdAddr, host string) (*Server, error) {
 		DockerClient: dockerClient,
 		EtcdClient:   etcdClient,
 		Host:         host,
+		PublishTTL:   ttl,
 	}, nil
 }
 
 // Listen adds an event listener to the docker client and publishes containers that were started.
-func (s *Server) Listen(ttl time.Duration) {
+func (s *Server) Listen() {
 	listener := make(chan *docker.APIEvents)
 	// TODO: figure out why we need to sleep for 10 milliseconds
 	// https://github.com/fsouza/go-dockerclient/blob/0236a64c6c4bd563ec277ba00e370cc753e1677c/event_test.go#L43
@@ -63,7 +65,7 @@ func (s *Server) Listen(ttl time.Duration) {
 					log.Error(err)
 					continue
 				}
-				s.publishContainer(container, ttl)
+				s.publishContainer(container)
 			} else if event.Status == "stop" {
 				s.removeContainer(event.ID)
 			}
@@ -72,14 +74,14 @@ func (s *Server) Listen(ttl time.Duration) {
 }
 
 // Poll lists all containers from the docker client every time the TTL comes up and publishes them to etcd
-func (s *Server) Poll(ttl time.Duration) {
+func (s *Server) Poll() {
 	containers, err := s.DockerClient.ListContainers(docker.ListContainersOptions{})
 	if err != nil {
 		log.Error(err)
 	}
 	for _, container := range containers {
 		// send container to channel for processing
-		s.publishContainer(&container, ttl)
+		s.publishContainer(&container)
 	}
 }
 
@@ -99,7 +101,7 @@ func (s *Server) getContainer(id string) (*docker.APIContainers, error) {
 }
 
 // publishContainer publishes the docker container to etcd.
-func (s *Server) publishContainer(container *docker.APIContainers, ttl time.Duration) {
+func (s *Server) publishContainer(container *docker.APIContainers) {
 	r := regexp.MustCompile(appNameRegex)
 	for _, name := range container.Names {
 		// HACK: remove slash from container name
@@ -119,8 +121,8 @@ func (s *Server) publishContainer(container *docker.APIContainers, ttl time.Dura
 			port := strconv.Itoa(int(p.PublicPort))
 			hostAndPort := s.Host + ":" + port
 			if s.IsPublishableApp(containerName) && s.IsPortOpen(hostAndPort) {
-				s.setEtcd(keyPath, hostAndPort, uint64(ttl.Seconds()))
-				s.updateDir(dirPath, uint64(ttl.Seconds()))
+				s.setEtcd(keyPath, hostAndPort, uint64(s.PublishTTL.Seconds()))
+				s.updateDir(dirPath, uint64(s.PublishTTL.Seconds()))
 				safeMap.Lock()
 				safeMap.data[container.ID] = appPath
 				safeMap.Unlock()

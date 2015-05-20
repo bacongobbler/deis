@@ -48,15 +48,15 @@ func main() {
 		}
 	}()
 
-	server, err := server.New(dockerAddr, etcdAddr, host)
+	server, err := server.New(dockerAddr, etcdAddr, host, publishTTL)
 	if err != nil {
 		log.Fatalf("failed to start (%s)", err)
 	}
 
-	go server.Listen(publishTTL)
+	go server.Listen()
 
 	for {
-		go server.Poll(publishTTL)
+		go server.Poll()
 		time.Sleep(interval)
 	}
 }
