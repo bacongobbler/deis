@@ -15,20 +15,20 @@ import (
 )
 
 var (
-	bindAddr        string
-	refreshDuration time.Duration
-	etcdTTL         time.Duration
-	host            string
-	dockerAddr      string
-	etcdAddr        string
-	log             = logrus.New()
-	logLevel        string
+	bindAddr   string
+	interval   time.Duration
+	etcdTTL    time.Duration
+	host       string
+	dockerAddr string
+	etcdAddr   string
+	log        = logrus.New()
+	logLevel   string
 )
 
 func init() {
 	flag.StringVar(&bindAddr, "bind-addr", "localhost:6060", "address to listen for incoming HTTP requests")
-	flag.DurationVar(&refreshDuration, "interval", 10 * time.Second, "backend polling interval")
-	flag.DurationVar(&etcdTTL, "publish-ttl", refreshDuration * 2, "backend TTL when publishing keys")
+	flag.DurationVar(&interval, "interval", 10*time.Second, "backend polling interval")
+	flag.DurationVar(&etcdTTL, "publish-ttl", interval*2, "backend TTL when publishing keys")
 	flag.StringVar(&host, "host", "127.0.0.1", "host address of the machine")
 	flag.StringVar(&dockerAddr, "docker-addr", "unix:///var/run/docker.sock", "address to a docker API")
 	flag.StringVar(&etcdAddr, "etcd-addr", "http://127.0.0.1:4001", "address to the etcd host")
@@ -62,7 +62,7 @@ func main() {
 
 	for {
 		go server.Poll(etcdTTL)
-		time.Sleep(refreshDuration)
+		time.Sleep(interval)
 	}
 }
 
