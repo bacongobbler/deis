@@ -48,7 +48,7 @@ func New(dockerAddr, etcdAddr, host string, ttl time.Duration) (*Server, error) 
 }
 
 // Listen adds an event listener to the docker client and publishes containers that were started.
-func (s *Server) Listen() {
+func (s *Server) Listen(stopChan chan bool) {
 	listener := make(chan *docker.APIEvents)
 	// TODO: figure out why we need to sleep for 10 milliseconds
 	// https://github.com/fsouza/go-dockerclient/blob/0236a64c6c4bd563ec277ba00e370cc753e1677c/event_test.go#L43
@@ -69,6 +69,13 @@ func (s *Server) Listen() {
 			} else if event.Status == "stop" {
 				s.removeContainer(event.ID)
 			}
+		case <-stopChan:
+			// TODO (bacongobbler): With etcd v0.4.6 go-etcd is just an http client and all
+			// connections to the server are handled by go-etcd. When we bump to 2.0, we'll need
+			// to handle this ourselves and call EtcdClient.Close(). go-dockerclient is also an
+			// http library so we don't need to close the connection here either.
+			close(listener)
+			break
 		}
 	}
 }

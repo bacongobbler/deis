@@ -2,9 +2,11 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -36,6 +38,10 @@ func init() {
 func main() {
 	flag.Parse()
 
+	signalChan := make(chan os.Signal, 2)
+	stopChan := make(chan bool)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+
 	log.Info("booting publisher...")
 	setLogLevel()
 
@@ -53,11 +59,21 @@ func main() {
 		log.Fatalf("failed to start (%s)", err)
 	}
 
-	go server.Listen()
+	// run Poll() once at boot to publish existing containers
+	go sever.Poll()
+	go server.Listen(stopChan)
 
+	t := time.NewTicker(interval)
+	defer t.Stop()
 	for {
-		go server.Poll()
-		time.Sleep(interval)
+		select {
+		case <-t.C:
+			go server.Poll()
+		case <-signalChan:
+			log.Info("shutting down publisher...")
+			stopChan <- true
+			break
+		}
 	}
 }
 
