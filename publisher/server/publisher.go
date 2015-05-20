@@ -22,7 +22,7 @@ const (
 type Server struct {
 	DockerClient *docker.Client
 	EtcdClient   *etcd.Client
-	host         string
+	Host         string
 }
 
 var safeMap = struct {
@@ -41,7 +41,7 @@ func New(dockerAddr, etcdAddr, host string) (*Server, error) {
 	return &Server{
 		DockerClient: dockerClient,
 		EtcdClient:   etcdClient,
-		host:         host,
+		Host:         host,
 	}, nil
 }
 
@@ -117,7 +117,7 @@ func (s *Server) publishContainer(container *docker.APIContainers, ttl time.Dura
 			// lowest port wins (docker sorts the ports)
 			// TODO (bacongobbler): support multiple exposed ports
 			port := strconv.Itoa(int(p.PublicPort))
-			hostAndPort := s.host + ":" + port
+			hostAndPort := s.Host + ":" + port
 			if s.IsPublishableApp(containerName) && s.IsPortOpen(hostAndPort) {
 				s.setEtcd(keyPath, hostAndPort, uint64(ttl.Seconds()))
 				s.updateDir(dirPath, uint64(ttl.Seconds()))
