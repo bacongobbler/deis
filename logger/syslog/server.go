@@ -62,6 +62,7 @@ func (s *Server) Listen(addr string) error {
 	}
 	s.conns = append(s.conns, c)
 	go s.receiver(c)
+	log.Println("listening on", addr)
 	return nil
 }
 
@@ -103,11 +104,13 @@ func (s *Server) receiver(c net.PacketConn) {
 		n, _, err := c.ReadFrom(buf)
 		if err != nil {
 			if !s.shutdown {
-				s.l.Fatalln("Read error:", err)
+				log.Fatalln("Read error:", err)
 			}
 			return
 		}
 		// pass along the incoming syslog message
-		s.passToHandlers(&Message{string(buf[:n])})
+		m := &Message{string(buf[:n])}
+		log.Println("message: ", m.Msg)
+		s.passToHandlers(m)
 	}
 }
