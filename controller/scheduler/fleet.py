@@ -356,6 +356,7 @@ class FleetHTTPClient(object):
             # the container is perfectly fine.
             if activeState == 'failed':
                 if state['systemdLoadState'] == 'loaded':
+                    print('loadState = {}'.format(state['systemdLoadState']))
                     return JobState.created
             return getattr(JobState, systemdActiveStateMap[activeState])
         except KeyError:

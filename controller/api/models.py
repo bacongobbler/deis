@@ -289,10 +289,17 @@ class App(UuidAuditedModel):
         start_threads = [Thread(target=c.start) for c in to_add]
         [t.start() for t in create_threads]
         [t.join() for t in create_threads]
-        if any(c.state != 'created' for c in to_add):
-            err = 'aborting, failed to create some containers'
-            log_event(self, err, logging.ERROR)
-            raise RuntimeError(err)
+        failed_containers = [c for c in to_add if c.state != 'created']
+        if len(failed_containers) != 0:
+            for c in failed_containers:
+                log_event(self,
+                          'container {} failed to create (state: {})'.format(
+                              c.short_name(),
+                              c.state),
+                          logging.ERROR)
+            msg = 'aborting, failed to create some containers'
+            log_event(self, msg, logging.ERROR)
+            raise RuntimeError(msg)
         [t.start() for t in start_threads]
         [t.join() for t in start_threads]
         if set([c.state for c in to_add]) != set(['up']):
