@@ -46,8 +46,7 @@ func main() {
 	client := etcd.NewClient([]string{"http://" + publishHost + ":" + publishPort})
 
 	signalChan := make(chan os.Signal, 1)
-	drainRespChan := make(chan *etcd.Response)
-	drainChan := make(chan string)
+	drainChan := make(chan *etcd.Response)
 	stopChan := make(chan bool)
 	exitChan := make(chan bool)
 	cleanupChan := make(chan bool)
@@ -58,7 +57,7 @@ func main() {
 		setEtcd(client, publishPath+"/drain", drainURI, 0)
 	}
 
-	go client.Watch(publishPath+"/drain", 0, false, drainRespChan, stopChan)
+	go client.Watch(publishPath+"/drain", 0, false, drainChan, stopChan)
 	go syslogd.Listen(exitChan, cleanupChan, drainChan, fmt.Sprintf("%s:%d", logAddr, logPort))
 	if enablePublish {
 		go publishService(exitChan, client, publishHost, publishPath, strconv.Itoa(logPort), uint64(time.Duration(publishTTL).Seconds()))
@@ -66,8 +65,6 @@ func main() {
 
 	for {
 		select {
-		case er := <-drainRespChan:
-			drainChan <- er.Node.Value
 		case <-signalChan:
 			close(exitChan)
 			stopChan <- true

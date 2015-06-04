@@ -8,6 +8,7 @@ import (
 	"path"
 	"regexp"
 
+	"github.com/coreos/go-etcd/etcd"
 	"github.com/deis/deis/logger/syslog"
 
 	"github.com/deis/deis/logger/drain"
@@ -101,7 +102,7 @@ func (h *handler) mainLoop() {
 }
 
 // Listen starts a new syslog server which runs until it receives a signal.
-func Listen(exitChan, cleanupDone chan bool, drainChan chan string, bindAddr string) {
+func Listen(exitChan, cleanupDone chan bool, drainChan chan *etcd.Response, bindAddr string) {
 	fmt.Println("Starting syslog...")
 	// If LogRoot doesn't exist, create it
 	// equivalent to Python's `if not os.path.exists(filename)`
@@ -126,8 +127,8 @@ func Listen(exitChan, cleanupDone chan bool, drainChan chan string, bindAddr str
 			fmt.Println("Shutting down...")
 			s.Shutdown()
 			cleanupDone <- true
-		case d := <-drainChan:
-			h.drainURI = d
+		case er := <-drainChan:
+			h.drainURI = er.Node.Value
 		}
 	}
 }
