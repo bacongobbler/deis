@@ -66,10 +66,8 @@ func main() {
 
 	for {
 		select {
-		case dr := <-drainRespChan:
-			if dr != nil && dr.Node != nil {
-				drainChan <- dr.Node.Value
-			}
+		case er := <-drainRespChan:
+			drainChan <- er.Node.Value
 		case <-signalChan:
 			close(exitChan)
 			stopChan <- true
