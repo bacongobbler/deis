@@ -242,9 +242,10 @@ func (s *Server) removeEtcd(key string, recursive bool) {
 	}
 }
 
-// updateDir updates the given directory for a given ttl. It succeeds
-// only if the given directory already exists.
+// updateDir updates or creates the given directory for a given ttl.
 func (s *Server) updateDir(directory string, ttl uint64) {
+	// Create directory with reckless abandon. If anything occurs, UpdateDir will catch it!
+	s.EtcdClient.CreateDir(directory, ttl)
 	if _, err := s.EtcdClient.UpdateDir(directory, ttl); err != nil {
 		log.Println(err)
 	}
