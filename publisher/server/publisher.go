@@ -34,6 +34,7 @@ var safeMap = struct {
 
 // New returns a new instance of Server.
 func New(dockerClient *docker.Client, etcdClient *etcd.Client, host, logLevel string) *Server {
+	log.Println("Log level set to", logLevel)
 	return &Server{
 		DockerClient: dockerClient,
 		EtcdClient:   etcdClient,
@@ -45,6 +46,8 @@ func New(dockerClient *docker.Client, etcdClient *etcd.Client, host, logLevel st
 // Listen adds an event listener to the docker client and publishes containers that were started.
 func (s *Server) Listen(ttl time.Duration) {
 	listener := make(chan *docker.APIEvents)
+
+	log.Println("listening for docker events")
 	// TODO: figure out why we need to sleep for 10 milliseconds
 	// https://github.com/fsouza/go-dockerclient/blob/0236a64c6c4bd563ec277ba00e370cc753e1677c/event_test.go#L43
 	defer func() { time.Sleep(10 * time.Millisecond); s.DockerClient.RemoveEventListener(listener) }()
@@ -75,6 +78,9 @@ func (s *Server) Poll(ttl time.Duration) {
 		log.Fatal(err)
 	}
 	for _, container := range containers {
+		if s.logLevel == "debug" {
+			log.Println("container found:", container.ID)
+		}
 		// send container to channel for processing
 		s.publishContainer(&container, ttl)
 	}
@@ -234,22 +240,22 @@ func (s *Server) setEtcd(key, value string, ttl uint64) {
 
 // removeEtcd removes the corresponding etcd key
 func (s *Server) removeEtcd(key string, recursive bool) {
-	if _, err := s.EtcdClient.Delete(key, recursive); err != nil {
-		log.Println(err)
-	}
 	if s.logLevel == "debug" {
 		log.Println("del", key)
+	}
+	if _, err := s.EtcdClient.Delete(key, recursive); err != nil {
+		log.Println(err)
 	}
 }
 
 // updateDir updates or creates the given directory for a given ttl.
 func (s *Server) updateDir(directory string, ttl uint64) {
+	if s.logLevel == "debug" {
+		log.Println("updateDir", directory)
+	}
 	// Create directory with reckless abandon. If anything occurs, UpdateDir will catch it!
 	s.EtcdClient.CreateDir(directory, ttl)
 	if _, err := s.EtcdClient.UpdateDir(directory, ttl); err != nil {
 		log.Println(err)
-	}
-	if s.logLevel == "debug" {
-		log.Println("updateDir", directory)
 	}
 }
