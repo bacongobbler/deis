@@ -314,6 +314,15 @@ class App(UuidAuditedModel):
             pass
 
     def _do_healthcheck(self, config):
+        # HACK (bacongobbler): sleep until publisher has hit the refresh interval. Publisher may
+        # take up to 20 seconds before it refreshes the keyspace containers, which we want to make
+        # sure that they're responding before performing the health check and/or recycle the old
+        # containers.
+        #
+        # The FIXME here would be to utilize confd --watch in both publisher and the router, but
+        # that is blocked dueto an issue upstream with etcd:
+        # https://github.com/coreos/etcd/issues/2679
+        time.sleep(20)
         timeout = time.time() + 60  # 1 minute from now
         while True:
             if time.time() > timeout:
