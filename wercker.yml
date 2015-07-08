@@ -1,0 +1,9 @@
+box: aigeruth/vagrant@0.0.3
+build:
+  steps:
+    - setup-go-workspace
+
+    - script:
+        name: test
+        code: |-
+            tests/bin/test-integration.sh
