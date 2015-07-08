@@ -1058,14 +1058,14 @@ def _etcd_publish_config(**kwargs):
     # deis config:unset would remove an existing value, but not delete the
     # old config object
     try:
-        _etcd_client.delete('/deis/services/{}/config'.format(config.app),
+        _etcd_client.delete('/deis/config/{}'.format(config.app),
                             prevExist=True, dir=True, recursive=True)
     except KeyError:
         pass
     if kwargs['created']:
         for k, v in config.values.iteritems():
             _etcd_client.write(
-                '/deis/services/{}/config/{}'.format(
+                '/deis/config/{}/{}'.format(
                     config.app,
                     unicode(k).encode('utf-8').lower()),
                 unicode(v).encode('utf-8'))
@@ -1074,7 +1074,7 @@ def _etcd_publish_config(**kwargs):
 def _etcd_purge_config(**kwargs):
     config = kwargs['instance']
     try:
-        _etcd_client.delete('/deis/services/{}/config'.format(config.app),
+        _etcd_client.delete('/deis/config/{}'.format(config.app),
                             prevExist=True, dir=True, recursive=True)
     except KeyError:
         pass
