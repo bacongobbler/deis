@@ -1,8 +1,15 @@
-box: aigeruth/vagrant@0.0.3
+box: wercker/golang
 build:
   steps:
     - setup-go-workspace
 
+    - script:
+        name: deps
+        code: |-
+            sudo apt-get update && sudo apt-get install -y build-essential autoconf
+            wget https://dl.bintray.com/mitchellh/vagrant/vagrant_1.7.2_x86_64.deb
+            sudo dpkg -i vagrant_1.7.2_x86_64.deb
+            vagrant plugin install vagrant-omnibus
     - script:
         name: test
         code: |-
