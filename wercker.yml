@@ -13,4 +13,6 @@ build:
     - script:
         name: test
         code: |-
+            env
+            ifconfig
             tests/bin/test-integration.sh
