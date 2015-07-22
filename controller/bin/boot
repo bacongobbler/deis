@@ -5,15 +5,21 @@
 
 # fail hard and fast even on pipelines
 set -eo pipefail
+set -x
 
 # set debug based on envvar
 [[ $DEBUG ]] && set -x
 
 # configure etcd
+# use nslookup to determine the IP address of the etcd server
+# FIXME (bacongobbler): fix etcdctl to allow FQDN
+export ETCD_HOST=${HOST:-$(host deis-etcd | awk '{print $4}')}
 export ETCD_PORT=${ETCD_PORT:-4001}
-export ETCD="$HOST:$ETCD_PORT"
+export ETCD="$ETCD_HOST:$ETCD_PORT"
 export ETCD_PATH=${ETCD_PATH:-/deis/controller}
 export ETCD_TTL=${ETCD_TTL:-20}
+
+export DATABASE_HOST=${HOST:-deis-database}
 
 # wait for etcd to be available
 until etcdctl --no-sync -C $ETCD ls >/dev/null 2>&1; do

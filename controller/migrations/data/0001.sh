@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
+set -x
 
+ETCD_HOST=${HOST:-$(host deis-etcd | awk '{print $4}')}
 ETCD_PORT=${ETCD_PORT:-4001}
-ETCD="$HOST:$ETCD_PORT"
+ETCD="$ETCD_HOST:$ETCD_PORT"
 ETCDCTL="etcdctl -C $ETCD"
 
 if [[ "$($ETCDCTL get /deis/migrations/data/0001 2> /dev/null)" != "done" ]];

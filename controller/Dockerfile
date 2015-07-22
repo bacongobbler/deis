@@ -1,9 +1,17 @@
-FROM alpine:3.1
+FROM debian:jessie
 
 ENV DEBIAN_FRONTEND noninteractive
 
 # install common packages
-RUN apk add --update-cache curl bash sudo && rm -rf /var/cache/apk/*
+RUN apt-get update && \
+    apt-get install -yq \
+    bash \
+    ca-certificates \
+    curl \
+    dnsutils \
+    sudo \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
 
 # install etcdctl
 RUN curl -sSL -o /usr/local/bin/etcdctl https://s3-us-west-2.amazonaws.com/get-deis/etcdctl-v0.4.9 \
@@ -20,11 +28,41 @@ EXPOSE 8000
 # define work environment
 WORKDIR /app
 
-ADD build.sh /app/tmp/build.sh
+# add a deis user
+RUN adduser \
+    --disabled-password \
+    --home /app \
+    --shell /bin/bash \
+    --gecos "" \
+	deis
+
+# create a /app directory for storing application data
+RUN mkdir -p /app && chown -R deis:deis /app
+
+# create directory for confd templates
+RUN mkdir -p /templates && chown -R deis:deis /templates
 
 ADD requirements.txt /app/requirements.txt
 
-RUN DOCKER_BUILD=true /app/tmp/build.sh
+# install required system packages
+# HACK: install git so we can install bacongobbler's fork of django-fsm
+RUN apt-get update && \
+    apt-get install -yq \
+    build-essential \
+    git \
+    libffi-dev \
+    libpq-dev \
+    libldap2-dev \
+    libsasl2-dev \
+    libssl-dev \
+    python \
+    python-dev \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* \
+# install pip \
+    && curl -sSL https://raw.githubusercontent.com/pypa/pip/7.0.3/contrib/get-pip.py | python - \
+# install dependencies \
+    && pip install --disable-pip-version-check --no-cache-dir -r /app/requirements.txt
 
 ADD . /app
 

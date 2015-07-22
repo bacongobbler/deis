@@ -317,6 +317,7 @@ WEB_ENABLED = False
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.' + os.environ.get('DATABASE_ENGINE', 'postgresql_psycopg2'),
+        'HOST': os.environ.get('DATABASE_HOST', 'localhost'),
         'NAME': os.environ.get('DATABASE_NAME', 'deis'),
         # randomize test database name so we can run multiple unit tests simultaneously
         'TEST_NAME': "unittest-{}".format(''.join(

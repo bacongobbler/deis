@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: deis-controller
+  labels:
+    name: deis-controller
+spec:
+  replicas: 1
+  selector:
+    name: deis-controller
+  template:
+    metadata:
+      labels:
+        name: deis-controller
+    spec:
+      containers:
+      - name: db
+        image: leeroy.bacongobbler.com/deis/controller:git-eae5d67
+        ports:
+        - containerPort: 8000
