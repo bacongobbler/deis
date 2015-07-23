@@ -9,13 +9,10 @@ RUN apt-get update && \
     ca-certificates \
     curl \
     dnsutils \
+    redis-tools \
     sudo \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
-
-# install etcdctl
-RUN curl -sSL -o /usr/local/bin/etcdctl https://s3-us-west-2.amazonaws.com/get-deis/etcdctl-v0.4.9 \
-    && chmod +x /usr/local/bin/etcdctl
 
 # install confd
 RUN curl -sSL -o /usr/local/bin/confd https://github.com/kelseyhightower/confd/releases/download/v0.10.0/confd-0.10.0-linux-amd64 \

@@ -7,7 +7,7 @@ Data models for the Deis API.
 from __future__ import unicode_literals
 import base64
 from datetime import datetime
-import etcd
+import redis
 import importlib
 import logging
 import os
@@ -965,73 +965,57 @@ def _log_cert_removed(**kwargs):
     logger.info("cert {} removed".format(cert))
 
 
-def _etcd_publish_key(**kwargs):
+def _redis_publish_key(**kwargs):
     key = kwargs['instance']
-    _etcd_client.write('/deis/builder/users/{}/{}'.format(
+    _redis_client.set('/deis/builder/users/{}/{}'.format(
         key.owner.username, fingerprint(key.public)), key.public)
 
 
-def _etcd_purge_key(**kwargs):
+def _redis_purge_key(**kwargs):
     key = kwargs['instance']
     try:
-        _etcd_client.delete('/deis/builder/users/{}/{}'.format(
+        _redis_client.delete('/deis/builder/users/{}/{}'.format(
             key.owner.username, fingerprint(key.public)))
-    except KeyError:
+    except redis.RedisError:
         pass
 
 
-def _etcd_purge_user(**kwargs):
+def _redis_purge_user(**kwargs):
     username = kwargs['instance'].username
     try:
-        _etcd_client.delete(
-            '/deis/builder/users/{}'.format(username), dir=True, recursive=True)
-    except KeyError:
-        # If _etcd_publish_key() wasn't called, there is no user dir to delete.
+        _redis_client.delete(
+            '/deis/builder/users/{}'.format(username))
+    except redis.RedisError:
+        # If _redis_publish_key() wasn't called, there is no user dir to delete.
         pass
 
 
-def _etcd_create_app(**kwargs):
-    appname = kwargs['instance']
-    if kwargs['created']:
-        _etcd_client.write('/deis/services/{}'.format(appname), None, dir=True)
-
-
-def _etcd_purge_app(**kwargs):
-    appname = kwargs['instance']
-    try:
-        _etcd_client.delete('/deis/services/{}'.format(appname), dir=True, recursive=True)
-    except KeyError:
-        pass
-
-
-def _etcd_publish_cert(**kwargs):
+def _redis_publish_cert(**kwargs):
     cert = kwargs['instance']
     if kwargs['created']:
-        _etcd_client.write('/deis/certs/{}/cert'.format(cert), cert.certificate)
-        _etcd_client.write('/deis/certs/{}/key'.format(cert), cert.key)
+        _redis_client.set('/deis/certs/{}/cert'.format(cert), cert.certificate)
+        _redis_client.set('/deis/certs/{}/key'.format(cert), cert.key)
 
 
-def _etcd_purge_cert(**kwargs):
+def _redis_purge_cert(**kwargs):
     cert = kwargs['instance']
     try:
-        _etcd_client.delete('/deis/certs/{}'.format(cert),
-                            prevExist=True, dir=True, recursive=True)
-    except KeyError:
+        _redis_client.delete('/deis/certs/{}'.format(cert))
+    except redis.RedisError:
         pass
 
 
-def _etcd_publish_domains(**kwargs):
+def _redis_publish_domains(**kwargs):
     domain = kwargs['instance']
     if kwargs['created']:
-        _etcd_client.write('/deis/domains/{}'.format(domain), domain.app)
+        _redis_client.set('/deis/domains/{}'.format(domain), domain.app)
 
 
-def _etcd_purge_domains(**kwargs):
+def _redis_purge_domains(**kwargs):
     domain = kwargs['instance']
     try:
-        _etcd_client.delete('/deis/domains/{}'.format(domain),
-                            prevExist=True, dir=True, recursive=True)
-    except KeyError:
+        _redis_client.delete('/deis/domains/{}'.format(domain))
+    except redis.RedisError:
         pass
 
 
@@ -1051,21 +1035,19 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         Token.objects.create(user=instance)
 
-# wire up etcd publishing if we can connect
+# wire up redis publishing if we can connect
 try:
-    _etcd_client = etcd.Client(host=settings.ETCD_HOST, port=int(settings.ETCD_PORT))
-    _etcd_client.get('/deis')
-except etcd.EtcdException:
-    logger.log(logging.WARNING, 'Cannot synchronize with etcd cluster')
-    _etcd_client = None
+    redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
+    _redis_client = redis.from_url(redis_url)
+except redis.RedisError as e:
+    logger.log(logging.WARNING, 'Cannot synchronize with redis cluster: {}'.format(e))
+    _redis_client = None
 
-if _etcd_client:
-    post_save.connect(_etcd_publish_key, sender=Key, dispatch_uid='api.models')
-    post_delete.connect(_etcd_purge_key, sender=Key, dispatch_uid='api.models')
-    post_delete.connect(_etcd_purge_user, sender=get_user_model(), dispatch_uid='api.models')
-    post_save.connect(_etcd_publish_domains, sender=Domain, dispatch_uid='api.models')
-    post_delete.connect(_etcd_purge_domains, sender=Domain, dispatch_uid='api.models')
-    post_save.connect(_etcd_create_app, sender=App, dispatch_uid='api.models')
-    post_delete.connect(_etcd_purge_app, sender=App, dispatch_uid='api.models')
-    post_save.connect(_etcd_publish_cert, sender=Certificate, dispatch_uid='api.models')
-    post_delete.connect(_etcd_purge_cert, sender=Certificate, dispatch_uid='api.models')
+if _redis_client:
+    post_save.connect(_redis_publish_key, sender=Key, dispatch_uid='api.models')
+    post_delete.connect(_redis_purge_key, sender=Key, dispatch_uid='api.models')
+    post_delete.connect(_redis_purge_user, sender=get_user_model(), dispatch_uid='api.models')
+    post_save.connect(_redis_publish_domains, sender=Domain, dispatch_uid='api.models')
+    post_delete.connect(_redis_purge_domains, sender=Domain, dispatch_uid='api.models')
+    post_save.connect(_redis_publish_cert, sender=Certificate, dispatch_uid='api.models')
+    post_delete.connect(_redis_purge_cert, sender=Certificate, dispatch_uid='api.models')

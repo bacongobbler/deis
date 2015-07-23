@@ -15,6 +15,13 @@ spec:
     spec:
       containers:
       - name: db
-        image: leeroy.bacongobbler.com/deis/controller:git-eae5d67
+        image: leeroy.bacongobbler.com/deis/controller:git-8085716
+        env:
+        - name: REDIS_HOST
+          value: deis-cache
+        - name: REDIS_URL
+          value: deis-cache:6379
+        - name: DATABASE_HOST
+          value: deis-database
         ports:
         - containerPort: 8000

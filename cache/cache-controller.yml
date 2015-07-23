@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: deis-cache
+  labels:
+    name: deis-cache
+spec:
+  replicas: 1
+  selector:
+    name: deis-cache
+  template:
+    metadata:
+      labels:
+        name: deis-cache
+    spec:
+      containers:
+      - name: redis
+        image: redis:2.8.9
+        ports:
+        - containerPort: 6379
