@@ -64,63 +64,15 @@ do
   echo "  Successfully brought up [riak-cs${index}]"
 done
 
-if env | egrep -q "DOCKER_RIAK_CS_HAPROXY=1"; then
-  RIAK_CS_CONTAINER_LINKS=""
+echo
+echo "  Riak CS credentials:"
+echo
 
-  for index in $(seq -w "1" "99");
-  do
-    if [ "${index}" -gt "${DOCKER_RIAK_CS_CLUSTER_SIZE}" ] ; then
-      break
-    fi
-    RIAK_CS_CONTAINER_LINKS="${RIAK_CS_CONTAINER_LINKS}--link riak-cs${index}:riak-cs${index} "
-  done
+for field in admin_key admin_secret ; do
+  echo -n "    ${field}: "
 
-  eval docker run -p 8080:8080 -p 8888:8888 \
-    "${RIAK_CS_CONTAINER_LINKS}"\
-    --name "riak-cs-haproxy" -d deis/riak-cs-haproxy > /dev/null 2>&1
-
-  until curl -s "http://${CLEAN_DOCKER_HOST}:8080/riak-cs/ping" | egrep "OK" > /dev/null 2>&1;
-  do
-    sleep 3
-  done
-
-  echo "  Successfully brought up [riak-cs-haproxy]"
-fi
-
-INSECURE_KEY_FILE=.insecure_key
-SSH_KEY_URL="https://github.com/phusion/baseimage-docker/raw/master/image/services/sshd/keys/insecure_key"
-CS01_PORT=$(docker port riak-cs01 22 | cut -d':' -f2)
-
-# Download insecure ssh key of phusion/baseimage-docker
-if [ ! -f $INSECURE_KEY_FILE ]; then
-  echo
-  echo "  Downloading insecure SSH key..."
-
-  if which curl > /dev/null; then
-    curl -o .insecure_key -fSL $SSH_KEY_URL > /dev/null 2>&1
-  elif which wget > /dev/null; then
-    wget -O .insecure_key $SSH_KEY_URL > /dev/null 2>&1
-  else
-    echo "curl or wget is required to download insecure SSH key. Check"
-    echo "the README to get more information about how to download it."
-  fi
-fi
-
-if [ -f $INSECURE_KEY_FILE ]; then
-  # SSH requires some constraints on private key permissions, force it!
-  chmod 600 .insecure_key
-
-  echo
-  echo "  Riak CS credentials:"
-  echo
-
-  for field in admin_key admin_secret ; do
-    echo -n "    ${field}: "
-
-    ssh -i "${INSECURE_KEY_FILE}" -o "LogLevel=quiet" -o "UserKnownHostsFile=/dev/null" -o "StrictHostKeyChecking=no" \
-        -p "${CS01_PORT}" "root@${CLEAN_DOCKER_HOST}" egrep "${field}" /etc/riak-cs/app.config | cut -d'"' -f2
-  done
-fi
+  docker exec riak-cs01 egrep "${field}" /etc/riak-cs/app.config | cut -d'"' -f2
+done
 
 echo
 echo "Please wait approximately 30 seconds for the cluster to stabilize."
