@@ -3,7 +3,7 @@
 all: stop-cluster riak-container start-cluster
 
 build riak-container:
-	docker build -t "deis/riak-cs" .
+	docker build -t "deis/riak" .
 
 start-cluster:
 	./bin/start-cluster.sh
